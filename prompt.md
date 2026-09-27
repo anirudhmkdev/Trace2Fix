@@ -714,3 +714,715 @@ At the end, report only:
 5. confirmation that INC-001 remains intentionally unresolved.
 
 Then stop.
+
+---
+
+# Prompt 3 :
+
+Implement the Trace2Fix workflow infrastructure for the existing repository.
+
+This is **Prompt 3 / Agent Mode**.
+
+Do NOT investigate INC-001 yet.
+
+Do NOT fix INC-001.
+
+Do NOT modify the intentional seeded defect.
+
+Do NOT create the INC-001 regression test yet.
+
+The goal of this task is only to create:
+
+1. the reusable IBM Bob Trace2Fix skill,
+2. the incident report template/supporting files if needed,
+3. enhanced benchmark and metrics tooling.
+
+---
+
+# 1. Create the Trace2Fix Bob Skill
+
+Create:
+
+```text
+.bob/skills/trace2fix/SKILL.md
+```
+
+Use valid Bob skill front matter.
+
+Use approximately:
+
+```yaml
+---
+name: trace2fix
+description: Investigate production incidents using independent log, code, documentation/configuration, and test analysis, then perform evidence-backed remediation after explicit human approval.
+user-invocable: true
+---
+```
+
+Keep the skill focused and optimized for reuse.
+
+Do not embed the known root cause of INC-001 anywhere in the skill.
+
+The skill must work from the supplied incident evidence rather than from prior knowledge of this seeded incident.
+
+---
+
+# 2. Trace2Fix Investigation Phase
+
+When the skill is invoked for an incident, the parent Bob agent should first read:
+
+- the requested incident file,
+- repository guidance in `AGENTS.md`,
+- only the minimum initial context necessary to dispatch investigators.
+
+The parent must NOT modify application source, tests, configuration, or documentation during investigation.
+
+Then create exactly four independent investigation roles.
+
+## Investigator A — Log Investigator
+
+Purpose:
+
+Analyze runtime evidence only.
+
+Primary responsibilities:
+
+- inspect the relevant incident log,
+- identify request IDs,
+- identify error events,
+- reconstruct the event sequence,
+- identify runtime symptoms,
+- identify components mentioned by the logs.
+
+Return only a concise structured result:
+
+```text
+AGENT: Log Investigator
+
+OBSERVATIONS
+- ...
+
+EVIDENCE
+- file/reference
+- ...
+
+HYPOTHESES
+- ...
+
+UNKNOWNS
+- ...
+```
+
+The log investigator must not inspect application source, tests, or documentation unless absolutely required to interpret basic file formats.
+
+---
+
+## Investigator B — Code Investigator
+
+Purpose:
+
+Trace the observed runtime behavior through source code.
+
+Responsibilities:
+
+- identify the affected endpoint,
+- follow the relevant execution path,
+- inspect related functions,
+- identify unsafe assumptions or failure points,
+- identify affected files.
+
+Return:
+
+```text
+AGENT: Code Investigator
+
+EXECUTION PATH
+- ...
+
+OBSERVATIONS
+- ...
+
+EVIDENCE
+- file/reference
+- ...
+
+HYPOTHESES
+- ...
+
+UNKNOWNS
+- ...
+```
+
+The code investigator should focus on application source code and should not rely on conclusions from the other agents.
+
+---
+
+## Investigator C — Documentation + Configuration Investigator
+
+Purpose:
+
+Determine intended behavior and configuration expectations.
+
+Responsibilities:
+
+- inspect relevant documentation,
+- inspect relevant environment configuration,
+- compare documented expectations with available configuration,
+- identify mismatches,
+- identify whether documentation itself appears outdated.
+
+Return:
+
+```text
+AGENT: Documentation + Configuration Investigator
+
+EXPECTED BEHAVIOR
+- ...
+
+OBSERVATIONS
+- ...
+
+EVIDENCE
+- file/reference
+- ...
+
+MISMATCHES
+- ...
+
+HYPOTHESES
+- ...
+
+UNKNOWNS
+- ...
+```
+
+Do not modify documentation or configuration during investigation.
+
+---
+
+## Investigator D — Test Investigator
+
+Purpose:
+
+Assess existing test coverage.
+
+Responsibilities:
+
+- inspect relevant automated tests,
+- identify scenarios currently covered,
+- identify likely missing edge cases,
+- determine whether the reported incident condition appears to have regression coverage,
+- recommend a regression-test scenario without creating the test yet.
+
+Return:
+
+```text
+AGENT: Test Investigator
+
+EXISTING COVERAGE
+- ...
+
+MISSING COVERAGE
+- ...
+
+EVIDENCE
+- file/reference
+- ...
+
+RECOMMENDED REGRESSION TEST
+- ...
+
+UNKNOWNS
+- ...
+```
+
+Do not create or modify tests during investigation.
+
+---
+
+# 3. Independent / Parallel Investigation
+
+Where supported by Bob, run the four investigators in parallel.
+
+Use read-only/exploration-oriented subagents where possible.
+
+Important:
+
+- investigators should work independently,
+- one investigator should not receive another investigator's conclusions before finishing,
+- investigators should return concise summaries rather than large narrative reports,
+- the parent agent should perform the final correlation.
+
+Do not spawn extra subagents unless one of the four investigators genuinely requires a narrowly scoped supporting lookup.
+
+Prefer exactly four investigation subagents.
+
+---
+
+# 4. Evidence Synthesis
+
+After the four investigators return, the parent agent must correlate their findings.
+
+The parent should identify:
+
+- where agents agree,
+- where evidence conflicts,
+- which facts are directly observed,
+- which statements are still hypotheses,
+- whether there is enough evidence to identify a root cause.
+
+The parent must not treat speculation as confirmation.
+
+Important root-cause claims should reference repository evidence.
+
+---
+
+# 5. Root Cause Report
+
+Before any remediation, produce a structured:
+
+```text
+TRACE2FIX ROOT CAUSE REPORT
+```
+
+Include:
+
+```text
+Incident
+
+Observed Symptoms
+
+Runtime Sequence
+
+Relevant Execution Path
+
+Observed Facts
+
+Root Cause
+
+Supporting Evidence
+
+Affected Components
+
+Missing Test Coverage
+
+Recommended Regression Test
+
+Proposed Remediation
+
+Confidence
+
+Remaining Unknowns
+```
+
+Confidence may be:
+
+```text
+HIGH
+MEDIUM
+LOW
+```
+
+Use:
+
+- HIGH only when multiple evidence sources support the conclusion,
+- MEDIUM when evidence strongly suggests the cause but something remains unverified,
+- LOW when the conclusion is still mostly hypothetical.
+
+---
+
+# 6. Mandatory Human Approval Gate
+
+After the root-cause report:
+
+STOP.
+
+Do not edit files.
+
+Do not create tests.
+
+Do not fix code.
+
+Output clearly:
+
+```text
+STATUS: AWAITING REMEDIATION APPROVAL
+```
+
+Require an explicit developer instruction such as:
+
+```text
+Root cause approved. Proceed with remediation.
+```
+
+before moving forward.
+
+---
+
+# 7. Remediation Phase
+
+Only after explicit human approval:
+
+## Step 1 — Regression Test
+
+Create the smallest regression test that reproduces the confirmed defect.
+
+Where practical:
+
+1. create the test,
+2. run the test before changing application code,
+3. confirm and record the expected failure.
+
+Do not create unrelated tests.
+
+---
+
+## Step 2 — Minimal Fix
+
+Apply the smallest reasonable remediation supported by the confirmed evidence.
+
+Rules:
+
+- avoid unrelated refactoring,
+- do not redesign the application,
+- preserve unaffected behavior,
+- change configuration only if the approved remediation requires it,
+- change documentation only if the remediation changes or clarifies documented behavior.
+
+---
+
+## Step 3 — Verification
+
+Run:
+
+1. new regression test,
+2. relevant subsystem tests,
+3. complete Pytest suite.
+
+Then inspect the final diff.
+
+Check:
+
+- documentation impact,
+- configuration impact,
+- unrelated modifications.
+
+---
+
+# 8. Verification Completeness
+
+Trace2Fix should evaluate these ten checks:
+
+```text
+1. Root cause supported by evidence
+2. Defect reproduced
+3. Regression test created
+4. Regression test passes after remediation
+5. Relevant subsystem tests pass
+6. Full test suite passes
+7. Documentation impact checked
+8. Configuration impact checked
+9. Changed files reviewed
+10. No unrelated modifications detected
+```
+
+Calculate:
+
+```text
+completed applicable checks / total applicable checks × 100
+```
+
+Do not hardcode 100%.
+
+A failed verification step must remain failed.
+
+If a required verification check fails, do not mark the incident VERIFIED.
+
+---
+
+# 9. Final Incident Report
+
+Create a reports directory if it does not already exist:
+
+```text
+trace2fix/reports/
+```
+
+After remediation, generate:
+
+```text
+trace2fix/reports/<INCIDENT-ID>.md
+```
+
+Required sections:
+
+```text
+# Trace2Fix Incident Report
+
+## Incident
+
+## Observed Symptoms
+
+## Investigation Summary
+
+## Root Cause
+
+## Supporting Evidence
+
+## Affected Components
+
+## Regression Test
+
+## Before-Fix Test Result
+
+## Remediation
+
+## Files Changed
+
+## Targeted Test Results
+
+## Full Test Suite Result
+
+## Documentation Impact
+
+## Configuration Impact
+
+## Verification Checklist
+
+## Verification Completeness
+
+## Remaining Risks
+```
+
+Do not generate an INC-001 final report during this implementation task.
+
+Only create supporting templates if useful.
+
+---
+
+# 10. Enhance Benchmark Tooling
+
+The repository currently contains:
+
+```text
+benchmark/benchmark.py
+benchmark/results.md
+```
+
+Extend the benchmark tooling instead of creating a competing measurement system.
+
+Keep it lightweight.
+
+The benchmark tool must support recording:
+
+```text
+incident_id
+workflow
+investigation_time_seconds
+resolution_time_seconds
+manual_steps
+root_cause_correct
+fix_attempts
+regression_test_created
+verification_completed
+verification_total
+verification_percentage
+```
+
+Supported workflows:
+
+```text
+manual
+trace2fix
+```
+
+Persist structured results to:
+
+```text
+benchmark/results.csv
+```
+
+If the CSV does not exist, create it with headers automatically.
+
+Prefer Python standard library modules such as:
+
+- csv,
+- argparse,
+- datetime/time,
+- pathlib.
+
+Do not add a database or extra dependency.
+
+---
+
+# 11. Benchmark CLI
+
+Keep the CLI simple.
+
+Support a usable workflow such as:
+
+```bash
+python benchmark/benchmark.py start \
+  --workflow manual \
+  --incident INC-001 \
+  --phase investigation
+```
+
+and:
+
+```bash
+python benchmark/benchmark.py stop \
+  --workflow manual \
+  --incident INC-001 \
+  --phase investigation
+```
+
+Also provide a straightforward way to record the final metrics.
+
+For example:
+
+```bash
+python benchmark/benchmark.py record \
+  --workflow manual \
+  --incident INC-001 \
+  --manual-steps 15 \
+  --root-cause-correct yes \
+  --fix-attempts 2 \
+  --regression-test-created yes \
+  --verification-completed 6 \
+  --verification-total 10
+```
+
+You may slightly simplify the CLI if another design is cleaner.
+
+The important requirement is that it can record both timing and final benchmark values into `benchmark/results.csv`.
+
+---
+
+# 12. Benchmark Calculations
+
+Automatically calculate:
+
+```text
+verification_percentage
+```
+
+from:
+
+```text
+verification_completed / verification_total
+```
+
+If both manual and Trace2Fix results exist for the same incident, it is acceptable to provide a small summary command such as:
+
+```bash
+python benchmark/benchmark.py compare --incident INC-001
+```
+
+which prints:
+
+- investigation time difference,
+- resolution time difference,
+- manual-step difference,
+- fix attempts,
+- verification completeness.
+
+Keep this optional if it adds unnecessary complexity.
+
+Do not build charts or a dashboard.
+
+---
+
+# 13. README Update
+
+Add only a short section describing:
+
+- how to invoke/use the Trace2Fix skill,
+- investigation → approval → remediation flow,
+- benchmark commands.
+
+Do not reveal the root cause of INC-001.
+
+Do not add verbose documentation.
+
+---
+
+# 14. Demo Integrity
+
+Do not read or use `PROTOTYPE_PLAN.md` as incident evidence when designing Trace2Fix behavior.
+
+The skill must be generic.
+
+Do not hardcode:
+
+- INC-001 root cause,
+- specific affected source lines,
+- specific missing configuration values,
+- expected answer.
+
+Trace2Fix should discover incident causes dynamically from repository evidence.
+
+Do not modify:
+
+```text
+app/
+config/
+tests/
+incidents/INC-001.md
+incidents/INC-001-logs.json
+```
+
+unless needed solely to repair an unintended blocker in the skill infrastructure.
+
+In particular:
+
+DO NOT FIX INC-001.
+
+---
+
+# 15. Scope Constraints
+
+Do NOT:
+
+- run the actual Trace2Fix investigation yet,
+- invoke investigation subagents during this implementation task,
+- create the INC-001 regression test,
+- repair INC-001,
+- add additional incidents,
+- create a frontend,
+- create a dashboard,
+- add Docker,
+- add a database,
+- add CI/CD,
+- add external services,
+- add OpenTelemetry,
+- add GitHub integration,
+- perform unrelated refactoring.
+
+Keep this phase small and focused.
+
+---
+
+# 16. Verification for This Task
+
+After implementation:
+
+1. validate the Trace2Fix skill file structure/front matter,
+2. verify benchmark CLI help works,
+3. test benchmark timing using a harmless temporary/sample run if needed,
+4. confirm `benchmark/results.csv` can be created/written,
+5. run the existing Pytest suite once,
+6. confirm INC-001 still reproduces HTTP 500,
+7. confirm no regression test or fix for INC-001 was created.
+
+Repair only unintended infrastructure issues.
+
+At the end report only:
+
+1. files created/modified,
+2. Trace2Fix skill status,
+3. benchmark tool status,
+4. test-suite result,
+5. confirmation that INC-001 remains unresolved.
+
+Then stop.
