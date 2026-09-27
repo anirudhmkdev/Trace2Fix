@@ -1809,4 +1809,323 @@ Then stop.
 
 ---
 
+Use the project-specific `trace2fix` skill to investigate production incident `INC-001`.
 
+This is the official Trace2Fix benchmark run.
+
+## Incident Input
+
+Incident description:
+
+`incidents/INC-001.md`
+
+Relevant runtime evidence:
+
+`incidents/INC-001-logs.json`
+
+Repository guidance:
+
+`AGENTS.md`
+
+Follow the Trace2Fix skill strictly.
+
+---
+
+# Benchmark Requirement
+
+This run will be compared against a previously recorded manual debugging baseline.
+
+Do not perform unnecessary exploration or unrelated work.
+
+The objective is to determine the root cause using the Trace2Fix multi-agent workflow while minimizing direct developer effort.
+
+---
+
+# Investigation Only
+
+Perform the **investigation phase only**.
+
+Do NOT:
+
+- modify application source,
+- modify configuration,
+- modify documentation,
+- create or modify tests,
+- implement a fix,
+- perform remediation,
+- read build-time planning material,
+- read `PROTOTYPE_PLAN.md`,
+- assume prior knowledge of INC-001.
+
+Treat the incident as unknown.
+
+---
+
+# Launch Four Independent Investigators
+
+Spawn exactly four focused read-only investigation subagents.
+
+Where supported, launch them in parallel.
+
+## 1. Log Investigator
+
+Scope primarily:
+
+`incidents/INC-001-logs.json`
+
+Responsibilities:
+
+- identify the relevant request,
+- correlate request IDs,
+- reconstruct the runtime sequence,
+- identify the exception and failure stage,
+- report runtime observations.
+
+Do not inspect other investigators' conclusions.
+
+Return only:
+
+```text
+AGENT: Log Investigator
+
+OBSERVATIONS
+...
+
+EVIDENCE
+...
+
+HYPOTHESES
+...
+
+UNKNOWNS
+...
+```
+
+---
+
+## 2. Code Investigator
+
+Scope primarily:
+
+`app/`
+
+Responsibilities:
+
+- identify the affected endpoint,
+- trace the relevant execution path,
+- identify the runtime failure point,
+- identify assumptions made by the implementation,
+- report affected components.
+
+Do not rely on conclusions from other investigators.
+
+Return:
+
+```text
+AGENT: Code Investigator
+
+EXECUTION PATH
+...
+
+OBSERVATIONS
+...
+
+EVIDENCE
+...
+
+HYPOTHESES
+...
+
+UNKNOWNS
+...
+```
+
+---
+
+## 3. Documentation + Configuration Investigator
+
+Scope primarily:
+
+`docs/`
+
+and:
+
+`config/`
+
+Responsibilities:
+
+- determine intended application/configuration behavior,
+- inspect relevant environment configuration,
+- identify meaningful mismatches,
+- determine whether documentation and actual configuration agree.
+
+Do not modify files.
+
+Return:
+
+```text
+AGENT: Documentation + Configuration Investigator
+
+EXPECTED BEHAVIOR
+...
+
+OBSERVATIONS
+...
+
+EVIDENCE
+...
+
+MISMATCHES
+...
+
+HYPOTHESES
+...
+
+UNKNOWNS
+...
+```
+
+---
+
+## 4. Test Investigator
+
+Scope primarily:
+
+`tests/`
+
+Responsibilities:
+
+- identify relevant existing tests,
+- determine what payment scenarios are currently covered,
+- identify missing edge-case coverage related to the observed failure,
+- recommend a regression-test scenario.
+
+Do NOT create the test yet.
+
+Return:
+
+```text
+AGENT: Test Investigator
+
+EXISTING COVERAGE
+...
+
+MISSING COVERAGE
+...
+
+EVIDENCE
+...
+
+RECOMMENDED REGRESSION TEST
+...
+
+UNKNOWNS
+...
+```
+
+---
+
+# Independence Requirement
+
+The four investigators must complete their own evidence gathering before the parent agent synthesizes their findings.
+
+One investigator should not be given another investigator's diagnosis before completing its own analysis.
+
+Use read-only/exploration subagents.
+
+Do not spawn additional agents unless absolutely required.
+
+---
+
+# Parent-Agent Synthesis
+
+After all four investigators return, correlate their findings.
+
+Explicitly distinguish:
+
+## Observed Facts
+
+Claims directly supported by repository evidence.
+
+## Hypotheses
+
+Possible explanations that are not yet sufficiently supported.
+
+## Correlated Root Cause
+
+The conclusion supported by the combined evidence.
+
+For meaningful conclusions, reference concrete repository files and relevant locations.
+
+Identify any conflicting evidence rather than hiding it.
+
+---
+
+# Produce the Trace2Fix Root Cause Report
+
+Output:
+
+```text
+TRACE2FIX ROOT CAUSE REPORT
+```
+
+with these sections:
+
+```text
+Incident
+
+Observed Symptoms
+
+Runtime Sequence
+
+Execution Path
+
+Observed Facts
+
+Root Cause
+
+Supporting Evidence
+
+Affected Components
+
+Existing Test Gap
+
+Recommended Regression Test
+
+Proposed Remediation
+
+Confidence
+
+Remaining Unknowns
+```
+
+Use confidence:
+
+- HIGH
+- MEDIUM
+- LOW
+
+Use HIGH only if multiple independent evidence sources support the conclusion.
+
+---
+
+# Mandatory Stop
+
+After producing the root-cause report, output:
+
+```text
+STATUS: AWAITING REMEDIATION APPROVAL
+```
+
+Then STOP.
+
+Do not:
+
+- create the regression test,
+- modify files,
+- run remediation,
+- fix the incident.
+
+Wait for the exact explicit developer approval before continuing:
+
+`Root cause approved. Proceed with remediation.`
